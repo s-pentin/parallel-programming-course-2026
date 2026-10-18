@@ -6,24 +6,25 @@ plugins {
 group = "org.labs"
 version = "1.0-SNAPSHOT"
 
-repositories {
-    mavenCentral()
-}
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+subprojects {
+    apply(plugin = "java")
+
+    repositories {
+        mavenCentral()
     }
-}
 
-application {
-    mainClass = "org.labs.Main"
-}
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
 
-dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
-}
+    dependencies {
+        "testImplementation"("org.junit.jupiter:junit-jupiter:5.13.4")
+    }
 
-tasks.test {
-    useJUnitPlatform()
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+    }
 }
