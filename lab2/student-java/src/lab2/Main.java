@@ -2,11 +2,14 @@ package lab2;
 
 import java.util.function.Supplier;
 
-/** lab2 <target> <strategy> [arg]
- *  strategies: first | random <seed> | randoms <count> | replay <trace> | dfs | bounded <K>
- *  add "log" at the end of replay/first/random to print the steps of the run. */
+/**
+ * lab2 <target> <strategy> [arg]
+ * strategies: first | random <seed> | randoms <count> | replay <trace> | dfs | bounded <K>
+ * add "log" at the end of replay/first/random to print the steps of the run.
+ */
 public final class Main {
-    record Outcome(String trace, String failure) { }
+    record Outcome(String trace, String failure) {
+    }
 
     static Outcome runOnce(Supplier<Targets.Target> factory, Strategy st, boolean log) {
         Scheduler s = new Scheduler();
@@ -15,7 +18,9 @@ public final class Main {
         t.setup(s);
         st.beginRun();
         s.run(st);
-        if (log) s.log.forEach(l -> System.out.println("  " + l));
+        if (log) {
+            s.log.forEach(l -> System.out.println("  " + l));
+        }
         String failure = s.deadlock != null ? "DEADLOCK " + s.deadlock : t.check();
         return new Outcome(s.traceString(), failure);
     }
@@ -33,7 +38,10 @@ public final class Main {
         do {
             Outcome o = runOnce(f, dfs, false);
             explored++;
-            if (o.failure != null) { fail++; if (first == null) first = o; }
+            if (o.failure != null) {
+                fail++;
+                if (first == null) first = o;
+            }
         } while (dfs.endRun());
         double sec = (System.nanoTime() - t0) / 1e9;
         System.out.printf("explored %d schedules, %d fail  (%.2f s)%n", explored, fail, sec);
@@ -41,10 +49,14 @@ public final class Main {
     }
 
     static void randoms(Supplier<Targets.Target> f, int count) {
-        int fail = 0; long firstSeed = -1;
+        int fail = 0;
+        long firstSeed = -1;
         for (long seed = 0; seed < count; seed++) {
             Outcome o = runOnce(f, new Strategies.RandomPick(seed), false);
-            if (o.failure != null) { fail++; if (firstSeed < 0) firstSeed = seed; }
+            if (o.failure != null) {
+                fail++;
+                if (firstSeed < 0) firstSeed = seed;
+            }
         }
         System.out.printf("random: %d seeds, %d fail (%.1f%%)%n", count, fail, 100.0 * fail / count);
         if (firstSeed >= 0) {
@@ -60,7 +72,10 @@ public final class Main {
     }
 
     public static void main(String[] a) {
-        if (a.length < 2) { System.out.println("usage: lab2 <target> <strategy> [arg] [log]"); return; }
+        if (a.length < 2) {
+            System.out.println("usage: lab2 <target> <strategy> [arg] [log]");
+            return;
+        }
         Supplier<Targets.Target> f = Targets.byName(a[0]);
         boolean log = a[a.length - 1].equals("log");
         switch (a[1]) {

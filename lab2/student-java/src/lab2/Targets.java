@@ -3,12 +3,16 @@ package lab2;
 import java.util.*;
 import java.util.function.Supplier;
 
-/** Programs under test. setup() spawns threads; check() returns null if the run is fine. */
+/**
+ * Programs under test. setup() spawns threads; check() returns null if the run is fine.
+ */
 public final class Targets {
-    private Targets() { }
+    private Targets() {
+    }
 
     public interface Target {
         void setup(Scheduler s);
+
         String check();
     }
 
@@ -19,7 +23,9 @@ public final class Targets {
             case "withdraw-v2" -> () -> new Withdraw(2);
             case "transfer" -> Transfer::new;
             default -> {
-                if (name.startsWith("collector-")) yield collector(name.substring("collector-".length()));
+                if (name.startsWith("collector-")) {
+                    yield collector(name.substring("collector-".length()));
+                }
                 throw new IllegalArgumentException("unknown target " + name);
             }
         };
@@ -34,7 +40,9 @@ public final class Targets {
         SchedLock mu;
         final boolean[] ok = new boolean[2];
 
-        Withdraw(int version) { this.version = version; }
+        Withdraw(int version) {
+            this.version = version;
+        }
 
         boolean withdraw(int amt) {
             switch (version) {
@@ -45,14 +53,23 @@ public final class Targets {
                     return ok;
                 }
                 case 1 -> {
-                    mu.lock(); boolean ok = balance >= amt; mu.unlock();     // check
+                    mu.lock();
+                    boolean ok = balance >= amt;
+                    mu.unlock();     // check
                     Scheduler.point();
-                    if (ok) { mu.lock(); balance -= amt; mu.unlock(); }      // act
+                    if (ok) {
+                        mu.lock();
+                        balance -= amt;
+                        mu.unlock();
+                    }      // act
                     return ok;
                 }
                 default -> {
                     mu.lock();
-                    if (balance < amt) { mu.unlock(); return false; }
+                    if (balance < amt) {
+                        mu.unlock();
+                        return false;
+                    }
                     Scheduler.point();
                     balance -= amt;
                     mu.unlock();
@@ -63,15 +80,22 @@ public final class Targets {
 
         public void setup(Scheduler s) {
             mu = new SchedLock(s, "mu");
-            for (int i = 0; i < 2; i++) { int k = i; s.spawn(() -> ok[k] = withdraw(100)); }
+            for (int i = 0; i < 2; i++) {
+                int k = i;
+                s.spawn(() -> ok[k] = withdraw(100));
+            }
         }
 
         public String check() {
             int b = version == 0 ? sharedBalance.peek() : balance;
             int wins = (ok[0] ? 1 : 0) + (ok[1] ? 1 : 0);
             String state = "balance=" + b + " results=" + ok[0] + "," + ok[1];
-            if (b < 0) return "OVERDRAFT " + state;
-            if (100 - b != wins * 100) return "LOST UPDATE " + state;
+            if (b < 0) {
+                return "OVERDRAFT " + state;
+            }
+            if (100 - b != wins * 100) {
+                return "LOST UPDATE " + state;
+            }
             return null;
         }
     }
@@ -86,18 +110,27 @@ public final class Targets {
             from.lock();
             Scheduler.point();
             to.lock();
-            if (aToB) { balA -= 10; balB += 10; } else { balB -= 10; balA += 10; }
+            if (aToB) {
+                balA -= 10;
+                balB += 10;
+            } else {
+                balB -= 10;
+                balA += 10;
+            }
             to.unlock();
             from.unlock();
         }
 
         public void setup(Scheduler s) {
-            a = new SchedLock(s, "a"); b = new SchedLock(s, "b");
+            a = new SchedLock(s, "a");
+            b = new SchedLock(s, "b");
             s.spawn(() -> transfer(a, b, true));
             s.spawn(() -> transfer(b, a, false));
         }
 
-        public String check() { return balA + balB == 200 ? null : "MONEY LOST"; }
+        public String check() {
+            return balA + balB == 200 ? null : "MONEY LOST";
+        }
     }
 
     // ---------------- double buffering from lab 1, one bucket ----------------
@@ -107,8 +140,14 @@ public final class Targets {
         String[] p = spec.split("-");
         String variant = p[0];
         int writers = 1, n = 1;
-        if (p.length > 1) { String[] wn = p[1].split("x"); writers = Integer.parseInt(wn[0]); n = Integer.parseInt(wn[1]); }
-        if (!Set.of("nostep3", "plain", "acqrel", "ok").contains(variant)) throw new IllegalArgumentException(variant);
+        if (p.length > 1) {
+            String[] wn = p[1].split("x");
+            writers = Integer.parseInt(wn[0]);
+            n = Integer.parseInt(wn[1]);
+        }
+        if (!Set.of("nostep3", "plain", "acqrel", "ok").contains(variant)) {
+            throw new IllegalArgumentException(variant);
+        }
         int w = writers, nn = n;
         return () -> new Collector(variant, w, nn);
     }
@@ -123,7 +162,8 @@ public final class Targets {
         long global;
 
         Collector(String variant, int writers, int n) {
-            this.writers = writers; this.n = n;
+            this.writers = writers;
+            this.n = n;
             step3 = variant.equals("ok") || variant.equals("acqrel");
             plainInside = variant.equals("plain");
             acqrel = variant.equals("acqrel");
@@ -136,11 +176,20 @@ public final class Targets {
             }
         }
 
-        int getInside(int w) { return plainInside ? insidePlain[w] : inside.get(w).peek(); }
+        int getInside(int w) {
+            return plainInside ? insidePlain[w] : inside.get(w).peek();
+        }
 
         void setInside(int w, int v) {
-            if (plainInside) { insidePlain[w] = v; return; }
-            if (acqrel) inside.get(w).setRelease(v); else inside.get(w).set(v);
+            if (plainInside) {
+                insidePlain[w] = v;
+                return;
+            }
+            if (acqrel) {
+                inside.get(w).setRelease(v);
+            } else {
+                inside.get(w).set(v);
+            }
         }
 
         void record(int w) {
@@ -148,7 +197,9 @@ public final class Targets {
             while (true) {
                 b = acqrel ? active.getAcquire() : active.get();
                 setInside(w, b);
-                if (!step3 || active.get() == b) break;    // step 3: did the reader flip meanwhile?
+                if (!step3 || active.get() == b) {
+                    break;    // step 3: did the reader flip meanwhile?
+                }
                 setInside(w, -1);
             }
             Shared<Long> c = cnt.get(w).get(b);
@@ -159,7 +210,10 @@ public final class Targets {
         void snapshot() {
             int old = active.get();
             active.set(1 - old);
-            for (int w = 0; w < writers; w++) { int k = w; Scheduler.await(() -> getInside(k) != old); }
+            for (int w = 0; w < writers; w++) {
+                int k = w;
+                Scheduler.await(() -> getInside(k) != old);
+            }
             for (int w = 0; w < writers; w++) {
                 Shared<Long> c = cnt.get(w).get(old);
                 global += c.get();
@@ -168,16 +222,29 @@ public final class Targets {
         }
 
         public void setup(Scheduler s) {
-            for (int w = 0; w < writers; w++) { int k = w; s.spawn(() -> { for (int i = 0; i < n; i++) record(k); }); }
+            for (int w = 0; w < writers; w++) {
+                int k = w;
+                s.spawn(() -> {
+                    for (int i = 0; i < n; i++) {
+                        record(k);
+                    }
+                });
+            }
             s.spawn(this::snapshot);
         }
 
         public String check() {
             long total = global;
-            for (List<Shared<Long>> c : cnt) total += c.get(0).peek() + c.get(1).peek();
+            for (List<Shared<Long>> c : cnt) {
+                total += c.get(0).peek() + c.get(1).peek();
+            }
             long expected = (long) writers * n;
-            if (total < expected) return "LOST " + (expected - total) + " record(s): counted " + total + " of " + expected;
-            if (total > expected) return "DUPLICATED " + (total - expected) + ": counted " + total + " of " + expected;
+            if (total < expected) {
+                return "LOST " + (expected - total) + " record(s): counted " + total + " of " + expected;
+            }
+            if (total > expected) {
+                return "DUPLICATED " + (total - expected) + ": counted " + total + " of " + expected;
+            }
             return null;
         }
     }

@@ -6,16 +6,33 @@ package lab2;
 public final class SchedLock {
     final String name;
 
-    /** Создаётся в setup() тестовой программы; зарегистрируйте лок в планировщике s. */
-    public SchedLock(Scheduler s, String name) { this.name = name; }
-
-    /** Пауза; если лок занят — ждать, не участвуя в выборе; затем стать владельцем. */
-    public void lock() {
-        throw new UnsupportedOperationException("TODO этап 2: SchedLock.lock");
+    /**
+     * Создаётся в setup() тестовой программы; зарегистрируйте лок в планировщике s.
+     */
+    public SchedLock(Scheduler s, String name) {
+        this.name = name;
+        s.registerLock(this);
     }
 
-    /** Пауза; освободить лок, ждавшие потоки снова могут быть выбраны. */
+    /**
+     * Пауза; если лок занят — ждать, не участвуя в выборе; затем стать владельцем.
+     */
+    public void lock() {
+        Scheduler scheduler = Scheduler.currentScheduler();
+        if (scheduler == null) {
+            throw new IllegalStateException("lock outside Scheduler.run()");
+        }
+        scheduler.lock(this);
+    }
+
+    /**
+     * Пауза; освободить лок, ждавшие потоки снова могут быть выбраны.
+     */
     public void unlock() {
-        throw new UnsupportedOperationException("TODO этап 2: SchedLock.unlock");
+        Scheduler scheduler = Scheduler.currentScheduler();
+        if (scheduler == null) {
+            throw new IllegalStateException("unlock outside Scheduler.run()");
+        }
+        scheduler.unlock(this);
     }
 }
